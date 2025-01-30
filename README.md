@@ -29,12 +29,11 @@ GitHub Dorking Tool is an **automated script** designed to find **exposed API ke
 ### **1️⃣ Install Dependencies**  
 Ensure Python and `requests` are installed:  
 ```bash
+git clone https://github.com/yourusername/github-dorking-tool.git
+cd github-dorking-tool
 pip install requests
 ---
 
-### **Clone the Repository**
-```bash
-git clone https://github.com/yourusername/github-dorking-tool.git
-cd github-dorking-tool
+
 
 
