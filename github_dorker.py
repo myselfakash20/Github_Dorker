@@ -1,10 +1,12 @@
 import requests
 import os
+import time
 
 # Load GitHub Token from environment variable
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+
 if not GITHUB_TOKEN:
-    print("❌ ERROR: GitHub Token not found. Please set it using 'export GITHUB_TOKEN=your_token'")
+    print("❌ ERROR: GitHub Token not found. Set it using 'export GITHUB_TOKEN=your_token'")
     exit()
 
 # Ask the user for organization(s) input
@@ -22,7 +24,41 @@ dorks = [
     "filename:mongo.conf", "filename:redis.conf", "filename:oauth.json", "filename:authorized_keys"
 ]
 
+# Set headers for GitHub API requests
 headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+
+# Check API rate limits
+def check_rate_limit():
+    url = "https://api.github.com/rate_limit"
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        rate_limit_data = response.json()
+        remaining_requests = rate_limit_data["rate"]["remaining"]
+        reset_time = rate_limit_data["rate"]["reset"]
+        return remaining_requests, reset_time
+    else:
+        return 0, 0  # If API call fails, assume limit reached
+
+# Function to handle API rate limits and retries
+def make_request(url):
+    while True:
+        remaining_requests, reset_time = check_rate_limit()
+        
+        if remaining_requests == 0:
+            wait_time = max(reset_time - time.time(), 60)  # Wait at least 60 seconds
+            print(f"⚠️ Rate limit reached. Waiting {int(wait_time)} seconds...")
+            time.sleep(wait_time)
+
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 403:
+            print("⚠️ API rate limit hit. Retrying in 60 seconds...")
+            time.sleep(60)
+        elif response.status_code == 200:
+            return response.json()
+        else:
+            print(f"❌ Failed request: Status Code {response.status_code}")
+            return None
 
 # Run dorks for each organization
 for org in orgs:
@@ -30,20 +66,13 @@ for org in orgs:
     
     for dork in dorks:
         url = f"https://api.github.com/search/code?q={dork}+org:{org}+in:file"
-        response = requests.get(url, headers=headers)
+        results = make_request(url)
 
-        if response.status_code == 200:
-            results = response.json()
-            total_count = results.get("total_count", 0)
-
-            if total_count > 0:
-                print(f"\n✅ Found {total_count} results for {dork} in {org}:")
-                for item in results.get("items", []):
-                    repo_name = item["repository"]["full_name"]
-                    file_url = item["html_url"]
-                    print(f"📂 {repo_name} → 🔗 {file_url}")
-
-        else:
-            print(f"❌ Failed to search {dork} in {org}, Status Code: {response.status_code}")
+        if results and results.get("total_count", 0) > 0:
+            print(f"\n✅ Found {results['total_count']} results for {dork} in {org}:")
+            for item in results.get("items", []):
+                repo_name = item["repository"]["full_name"]
+                file_url = item["html_url"]
+                print(f"📂 {repo_name} → 🔗 {file_url}")
 
 print("\n🎯 GitHub Dorking Complete! Review your results.")
