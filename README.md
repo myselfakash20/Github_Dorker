@@ -32,4 +32,5 @@ Ensure Python and `requests` are installed:
 git clone https://github.com/yourusername/github-dorking-tool.git
 cd github-dorking-tool
 pip install requests
+export GITHUB_TOKEN="your_personal_access_token"
 python3 github_dorker.py
