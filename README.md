@@ -30,7 +30,7 @@ GitHub Dorking Tool is an **automated script** designed to find **exposed API ke
 Ensure Python and `requests` are installed:  
 ```bash
 git clone https://github.com/myselfakash20/Github_Dorker.git
-cd Github-Dorking
+cd Github_Dorker
 pip install requests
 export GITHUB_TOKEN="your_personal_access_token"
 python3 github_dorker.py
